@@ -1,0 +1,36 @@
+version: 2.1
+
+workflows:
+  build:
+    jobs:
+      - deploy
+
+jobs:
+  deploy:
+    docker:
+      - image: circleci/ruby:2.6.2-node
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-deps-{{ checksum "Gemfile.lock" }}
+      - save_cache:
+          paths:
+            - vendor/bundle
+          key: v1-deps-{{ checksum "Gemfile.lock" }}
+      - restore_cache:
+          key: v1-deps-{{ checksum "yarn.lock" }}
+      - save_cache:
+          paths:
+            - vendor/bundle
+          key: v1-deps-{{ checksum "yarn.lock" }}
+      - aws-cli/setup:
+          environment:
+            aws-access-key-id: $AWS_ACCESS_KEY_ID
+            aws-secret-access-key: $AWS_SECRET_ACCESS_KEY
+            aws-region: us-east-1
+      - run:
+          name: Bootstrap
+          command: ./bin/bootstrap
+      - run:
+          name: Deploy
+          command: ./bin/deploy
